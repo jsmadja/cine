@@ -1,47 +1,56 @@
 services:
-  # Service principal : génère la liste des films et la page HTML
-  films:
-    build: .
-    container_name: cine-films
+  # Backend NestJS
+  backend:
+    build: ./backend
+    container_name: cine-backend
+    ports:
+      - "3000:3000"
     volumes:
       - ./cache:/app/cache
-    command: node dist/index.js
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
 
-  # Serveur web pour afficher la page des films
-  web:
-    image: nginx:alpine
-    container_name: cine-web
+  # Frontend Vue.js
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:3000/api
+    container_name: cine-frontend
     ports:
       - "8080:80"
-    volumes:
-      - ./cache:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
     restart: unless-stopped
 
-  # Serveur API Freebox pour programmer les enregistrements
-  server:
-    build: .
-    container_name: cine-server
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./cache:/app/cache
-    command: node dist/server/index.js
-    restart: unless-stopped
-
-  # Service de développement avec hot reload
-  dev:
+  # Service de développement
+  dev-backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: cine-dev
+    container_name: cine-dev-backend
     ports:
       - "3000:3000"
     volumes:
-      - .:/app
+      - ./backend:/app
       - /app/node_modules
+      - ./cache:/app/cache
     command: npm run dev
     profiles:
       - dev
 
-
-
+  dev-frontend:
+    image: node:20-alpine
+    container_name: cine-dev-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    profiles:
+      - dev

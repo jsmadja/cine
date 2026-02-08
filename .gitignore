@@ -588,3 +588,7 @@ FodyWeavers.xsd
 /cache/xmltv_fr.xml
 /cache/freebox_config.json
 /cache/channels.txt
+/backend/cache/xmltv_fr.xml
+/cache/movies_cache.json
+/backend/cache/movies_cache.json
+/frontend/.vscode/extensions.json

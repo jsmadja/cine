@@ -1,32 +1,25 @@
 {
   "name": "cine",
-  "version": "1.0.0",
-  "description": "Liste les films sur les chaînes TV françaises",
-  "main": "dist/index.js",
+  "version": "2.0.0",
+  "description": "Liste les films sur les chaînes TV françaises - Vue.js + NestJS",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "npx ts-node src/index.ts",
-    "build": "tsc",
-    "server": "npx ts-node src/server/index.ts",
-    "server:prod": "node dist/server/index.js",
-    "channels": "npx ts-node src/list-channels.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/adm-zip": "^0.5.7",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.2.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "adm-zip": "^0.5.16",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "fast-xml-parser": "^5.3.4"
+    "concurrently": "^8.2.2"
   }
 }

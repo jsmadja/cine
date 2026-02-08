@@ -2,265 +2,170 @@
 
 Application pour lister les films diffusés sur les chaînes TV françaises et programmer des enregistrements sur Freebox.
 
+## Architecture
+
+- **Frontend** : Vue.js 3 + TypeScript + Pinia
+- **Backend** : NestJS + TypeScript
+- **Données** : XMLTV (rafraîchies automatiquement chaque jour à 6h)
+
 ## Fonctionnalités
 
 - 📺 Récupération automatique des programmes TV (source XMLTV)
 - 🎬 Filtrage intelligent des films (exclusion des téléfilms)
 - 🔍 Filtrage par chaînes configurables
-- 📄 Génération d'une page HTML responsive (style Netflix)
+- 📄 Interface web responsive (style Netflix)
 - ⏺️ Programmation d'enregistrements sur Freebox
 - 💾 Cache intelligent (24h) pour éviter les téléchargements répétés
+- 🔄 Rafraîchissement automatique quotidien
 
 ## Prérequis
 
-- Node.js 20+ ou Docker
+- Docker & Docker Compose
 - Freebox (optionnel, pour les enregistrements)
 
-## Installation
+## Démarrage rapide
 
-### Avec Node.js
-
-```bash
-# Cloner le projet
-git clone <repo>
-cd cine
-
-# Installer les dépendances
-npm install
-
-# Compiler
-npm run build
-```
-
-### Avec Docker
+### Avec Docker (recommandé)
 
 ```bash
-docker compose build
+# Construire et lancer
+docker compose up -d
+
+# Voir les logs
+docker compose logs -f
 ```
 
-## Utilisation
-
-### Générer la liste des films
-
-```bash
-# Avec Node.js
-npm start
-
-# Avec Docker
-docker compose run --rm films
-```
-
-La page HTML est générée dans `cache/films.html`.
-
-### Lancer les serveurs (web + API Freebox)
-
-```bash
-# Avec Docker (recommandé)
-docker compose up -d web server
-
-# Avec Node.js
-npm run server
-```
-
-### Accéder à l'interface
+### Accéder à l'application
 
 | Service | URL |
 |---------|-----|
-| 📺 Page des films | http://localhost:8080/films.html |
-| 📡 API Freebox | http://localhost:3000/api/freebox/status |
+| 📺 Frontend (Vue.js) | http://localhost:8080 |
+| 📡 Backend (API) | http://localhost:3000/api |
 
-### Ouvrir la page directement
+## Développement
+
+### Mode développement
 
 ```bash
-# macOS
-open http://localhost:8080/films.html
+# Backend
+cd backend
+npm install
+npm run dev
 
-# Linux
-xdg-open http://localhost:8080/films.html
-
-# Windows
-start http://localhost:8080/films.html
+# Frontend (dans un autre terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
-## Commandes disponibles
+Le frontend sera accessible sur http://localhost:5173
 
-### NPM
-
-| Commande | Description |
-|----------|-------------|
-| `npm start` | Générer la liste des films |
-| `npm run build` | Compiler TypeScript |
-| `npm run dev` | Mode développement |
-| `npm run server` | Lancer le serveur API Freebox |
-| `npm run channels` | Lister toutes les chaînes disponibles |
-
-### Docker
-
-| Commande | Description |
-|----------|-------------|
-| `docker compose build` | Construire les images |
-| `docker compose run --rm films` | Générer la liste des films |
-| `docker compose up -d web server` | Lancer web + API |
-| `docker compose logs -f` | Voir les logs |
-| `docker compose down` | Arrêter les services |
-
-## Configuration
-
-Modifier le fichier `src/config/index.ts` :
-
-### Filtrer les chaînes
-
-```typescript
-export const CHANNEL_FILTER: string[] = [
-    "TF1.fr",
-    "France2.fr",
-    "Arte.fr",
-    "RTL9.fr",
-    // Ajouter les chaînes souhaitées
-];
-```
-
-> 💡 Utilisez `npm run channels` pour voir la liste complète des chaînes disponibles.
-
-### Catégories de films
-
-```typescript
-export const MOVIE_CATEGORIES = [
-    "film",
-    "cinéma",
-    "cinema",
-    "long métrage",
-];
-
-// Catégories exclues
-export const EXCLUDED_CATEGORIES = [
-    "téléfilm",
-    "telefilm",
-];
-```
-
-## Structure du projet
+### Structure du projet
 
 ```
 cine/
-├── src/
-│   ├── config/          # Configuration
-│   ├── models/          # Interfaces TypeScript
-│   ├── services/        # Logique métier
-│   │   ├── cache.service.ts
-│   │   ├── xmltv.service.ts
-│   │   ├── movie.service.ts
-│   │   ├── freebox.service.ts
-│   │   └── html-generator.service.ts
-│   ├── server/          # API Express
-│   ├── utils/           # Utilitaires
-│   └── index.ts         # Point d'entrée
-├── cache/               # Fichiers en cache
-│   ├── xmltv_fr.xml     # Programme TV
-│   ├── films.html       # Page générée
-│   └── channels.txt     # Liste des chaînes
-├── dist/                # Code compilé
-├── Dockerfile
+├── backend/                 # API NestJS
+│   ├── src/
+│   │   ├── movies/         # Module films
+│   │   ├── freebox/        # Module Freebox
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   ├── Dockerfile
+│   └── package.json
+├── frontend/                # App Vue.js
+│   ├── src/
+│   │   ├── api/            # Appels API
+│   │   ├── components/     # Composants Vue
+│   │   ├── stores/         # Pinia stores
+│   │   ├── types/          # Types TypeScript
+│   │   └── views/          # Pages
+│   ├── Dockerfile
+│   └── package.json
+├── cache/                   # Données en cache
 ├── docker-compose.yml
-└── package.json
+└── README.md
 ```
 
-## Enregistrement Freebox
+## API Backend
 
-### Première connexion
+### Films
 
-1. Lancez le serveur : `docker compose up -d server`
-2. Ouvrez la page des films
-3. Cliquez sur "Freebox" dans l'en-tête
-4. Cliquez sur "Autoriser"
-5. **Validez sur l'écran LCD de votre Freebox** (appuyez sur ➡️)
-6. Cliquez sur "Vérifier"
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/movies` | GET | Liste des films |
+| `/api/movies?channels=TF1.fr,M6.fr` | GET | Films filtrés par chaîne |
+| `/api/movies/refresh` | GET | Rafraîchir les données |
+| `/api/movies/channels` | GET | Liste des chaînes |
+| `/api/movies/filter` | GET | Filtre actuel |
+| `/api/movies/filter` | POST | Définir le filtre |
+| `/api/movies/:id` | GET | Détails d'un film |
 
-### Programmer un enregistrement
-
-Cliquez sur le bouton "⏺️ Enregistrer sur Freebox" sur n'importe quel film.
-
-L'enregistrement inclut automatiquement :
-- 5 minutes avant le début
-- 10 minutes après la fin
-
-## API Freebox
+### Freebox
 
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
 | `/api/freebox/status` | GET | Statut de connexion |
 | `/api/freebox/authorize` | POST | Demander l'autorisation |
 | `/api/freebox/authorize/status` | GET | Vérifier l'autorisation |
-| `/api/freebox/channels` | GET | Liste des chaînes Freebox |
+| `/api/freebox/channels` | GET | Chaînes Freebox |
 | `/api/freebox/record` | POST | Programmer un enregistrement |
 | `/api/freebox/recordings` | GET | Liste des enregistrements |
 
-## Licence
+## Enregistrement Freebox
 
-ISC
+### Première connexion
 
----
+1. Ouvrez l'application http://localhost:8080
+2. Cliquez sur "Freebox" dans l'en-tête
+3. Cliquez sur "Autoriser"
+4. **Validez sur l'écran LCD de votre Freebox** (appuyez sur ➡️)
+5. Cliquez sur "Vérifier"
 
-## Publier l'image Docker (pour NAS/Portainer)
+### Programmer un enregistrement
 
-### 1. Se connecter à Docker Hub
+Cliquez sur "⏺️ Enregistrer sur Freebox" sur n'importe quel film.
+
+## Déploiement sur NAS (Portainer)
+
+### 1. Publier les images Docker
 
 ```bash
+# Se connecter
 docker login
+
+# Construire et pousser
+docker buildx build --platform linux/amd64,linux/arm64 -t VOTRE_USERNAME/cine-backend:latest --push ./backend
+docker buildx build --platform linux/amd64,linux/arm64 -t VOTRE_USERNAME/cine-frontend:latest --push ./frontend
 ```
 
-### 2. Construire et taguer l'image
-
-```bash
-# Remplacer VOTRE_USERNAME par votre nom d'utilisateur Docker Hub
-docker build -t VOTRE_USERNAME/cine:latest .
-
-# Pour une image multi-architecture (ARM64 pour NAS UGreen)
-docker buildx create --use
-docker buildx build --platform linux/amd64,linux/arm64 -t VOTRE_USERNAME/cine:latest --push .
-```
-
-### 3. Pousser l'image
-
-```bash
-docker push VOTRE_USERNAME/cine:latest
-```
-
-### 4. Utiliser sur Portainer (NAS UGreen)
-
-Dans Portainer, créez une nouvelle stack avec ce `docker-compose.yml` :
+### 2. Stack Portainer
 
 ```yaml
 services:
-  films:
-    image: jsmadja/cine:latest
-    container_name: cine-films
-    volumes:
-      - ./cache:/app/cache
-    command: node dist/index.js
-
-  web:
-    image: nginx:alpine
-    container_name: cine-web
-    ports:
-      - "8080:80"
-    volumes:
-      - ./cache:/usr/share/nginx/html:ro
-    restart: unless-stopped
-
-  server:
-    image: jsmadja/cine:latest
-    container_name: cine-server
+  backend:
+    image: VOTRE_USERNAME/cine-backend:latest
+    container_name: cine-backend
     ports:
       - "3000:3000"
     volumes:
       - ./cache:/app/cache
-    command: node dist/server/index.js
+    restart: unless-stopped
+
+  frontend:
+    image: VOTRE_USERNAME/cine-frontend:latest
+    container_name: cine-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
     restart: unless-stopped
 ```
 
-### 5. Accéder depuis le NAS
+### 3. Accès
 
-- Page des films : `http://IP_DU_NAS:8080/films.html`
-- API Freebox : `http://IP_DU_NAS:3000/api/freebox/status`
+- **Frontend** : `http://IP_DU_NAS:8080`
+- **Backend** : `http://IP_DU_NAS:3000/api`
 
+## Licence
+
+ISC
