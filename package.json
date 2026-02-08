@@ -2,12 +2,14 @@
   "name": "cine",
   "version": "1.0.0",
   "description": "Liste les films sur les chaînes TV françaises",
-  "main": "dist/get_movies.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/get_movies.js",
-    "dev": "npx ts-node get_movies.ts",
+    "start": "node dist/index.js",
+    "dev": "npx ts-node src/index.ts",
     "build": "tsc",
-    "server": "npx ts-node freebox_server.ts",
+    "server": "npx ts-node src/server/index.ts",
+    "server:prod": "node dist/server/index.js",
+    "channels": "npx ts-node src/list-channels.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
