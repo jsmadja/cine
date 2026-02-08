@@ -14,6 +14,7 @@ export interface Movie {
   country?: string
   directors?: string[]
   actors?: string[]
+  isScheduled?: boolean
 }
 
 export interface Channel {

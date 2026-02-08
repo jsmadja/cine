@@ -7,7 +7,7 @@ export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
   @Get()
-  getMovies(@Query('channels') channels?: string): MoviesResponse {
+  async getMovies(@Query('channels') channels?: string): Promise<MoviesResponse> {
     const channelFilter = channels ? channels.split(',') : undefined;
     return this.moviesService.getMovies(channelFilter);
   }

@@ -5,6 +5,7 @@ import * as path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import AdmZip from 'adm-zip';
 import { Movie, Channel, MoviesResponse } from './movie.interface';
+import { FreeboxService } from '../freebox/freebox.service';
 
 // Configuration
 const XMLTV_URL = 'https://xmltvfr.fr/xmltv/xmltv_fr.zip';
@@ -52,7 +53,7 @@ export class MoviesService {
   private lastUpdated: Date = new Date(0);
   private channelFilter: string[] = DEFAULT_CHANNEL_FILTER;
 
-  constructor() {
+  constructor(private readonly freeboxService: FreeboxService) {
     this.ensureCacheDir();
     this.loadFromCache();
   }
@@ -309,7 +310,7 @@ export class MoviesService {
   }
 
   // API Methods
-  getMovies(channelFilter?: string[]): MoviesResponse {
+  async getMovies(channelFilter?: string[]): Promise<MoviesResponse> {
     const now = new Date();
 
     // Filtrer les films passés (ne garder que ceux qui n'ont pas encore commencé ou sont en cours)
@@ -319,12 +320,56 @@ export class MoviesService {
       filteredMovies = filteredMovies.filter(m => channelFilter.includes(m.channelId));
     }
 
+    // Récupérer les enregistrements programmés sur la Freebox
+    const scheduledRecordings = await this.getScheduledRecordings();
+
+    // Enrichir les films avec l'info d'enregistrement
+    const enrichedMovies = filteredMovies.map(movie => ({
+      ...movie,
+      isScheduled: this.isMovieScheduled(movie, scheduledRecordings),
+    }));
+
     return {
-      movies: filteredMovies,
-      totalCount: filteredMovies.length,
+      movies: enrichedMovies,
+      totalCount: enrichedMovies.length,
       lastUpdated: this.lastUpdated,
       channels: this.channels,
     };
+  }
+
+  private async getScheduledRecordings(): Promise<any[]> {
+    try {
+      const result = await this.freeboxService.getRecordings();
+      if (result.success && result.recordings) {
+        return Array.isArray(result.recordings) ? result.recordings : Object.values(result.recordings);
+      }
+    } catch (error) {
+      this.logger.warn('Impossible de récupérer les enregistrements Freebox:', error);
+    }
+    return [];
+  }
+
+  private isMovieScheduled(movie: Movie, recordings: any[]): boolean {
+    if (!recordings || recordings.length === 0) return false;
+
+    const movieStart = new Date(movie.startDate).getTime() / 1000;
+    const movieEnd = new Date(movie.endDate).getTime() / 1000;
+    const movieNameLower = movie.name.toLowerCase();
+
+    return recordings.some(rec => {
+      // Vérifier par nom (comparaison souple)
+      const recName = (rec.name || '').toLowerCase();
+      const nameMatch = recName.includes(movieNameLower) || movieNameLower.includes(recName);
+
+      // Vérifier par horaire (avec marge de 15 minutes)
+      const margin = 15 * 60; // 15 minutes en secondes
+      const timeMatch =
+        Math.abs(rec.start - movieStart) < margin &&
+        Math.abs(rec.end - movieEnd) < margin;
+
+      // Match si le nom correspond OU si l'horaire correspond
+      return nameMatch || timeMatch;
+    });
   }
 
   getMovieById(id: string): Movie | undefined {

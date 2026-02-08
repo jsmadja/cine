@@ -39,16 +39,21 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
 </script>
 
 <template>
-  <article class="movie-card">
-    <img
-      v-if="movie.icon"
-      :src="movie.icon"
-      :alt="movie.name"
-      class="movie-poster"
-      loading="lazy"
-      @error="($event.target as HTMLImageElement).outerHTML = '<div class=\'movie-poster placeholder\'>🎬</div>'"
-    />
-    <div v-else class="movie-poster placeholder">🎬</div>
+  <article class="movie-card" :class="{ 'is-scheduled': movie.isScheduled }">
+    <div class="poster-container">
+      <img
+        v-if="movie.icon"
+        :src="movie.icon"
+        :alt="movie.name"
+        class="movie-poster"
+        loading="lazy"
+        @error="($event.target as HTMLImageElement).outerHTML = '<div class=\'movie-poster placeholder\'>🎬</div>'"
+      />
+      <div v-else class="movie-poster placeholder">🎬</div>
+      <div v-if="movie.isScheduled" class="scheduled-badge">
+        ✅ Programmé
+      </div>
+    </div>
 
     <div class="movie-content">
       <h4 class="movie-title">
@@ -86,6 +91,7 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
       </p>
 
       <button
+        v-if="!movie.isScheduled"
         class="btn-record"
         :class="{
           recording: recordingState === 'success',
@@ -99,6 +105,9 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
         <span v-else-if="recordingState === 'success'">✅ Programmé!</span>
         <span v-else-if="recordingState === 'error'">❌ Erreur</span>
       </button>
+      <div v-else class="already-scheduled">
+        ✅ Déjà programmé sur Freebox
+      </div>
     </div>
   </article>
 </template>
@@ -110,12 +119,38 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   border: 1px solid #333;
+  position: relative;
+}
+
+.movie-card.is-scheduled {
+  border-color: #27ae60;
 }
 
 .movie-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
   border-color: #e50914;
+}
+
+.movie-card.is-scheduled:hover {
+  border-color: #27ae60;
+}
+
+.poster-container {
+  position: relative;
+}
+
+.scheduled-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .movie-poster {
@@ -255,6 +290,18 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
 
 .btn-record.error {
   background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.already-scheduled {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 /* Responsive adjustments */
