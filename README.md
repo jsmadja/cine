@@ -127,32 +127,32 @@ Cliquez sur "⏺️ Enregistrer sur Freebox" sur n'importe quel film.
 
 ## Déploiement sur NAS (Portainer)
 
-### 1. Publier les images Docker
+### Option 1 : Publier les images Docker sur Docker Hub
 
 ```bash
-# Se connecter
+# Se connecter à Docker Hub
 docker login
 
-# Construire et pousser
-docker buildx build --platform linux/amd64,linux/arm64 -t VOTRE_USERNAME/cine-backend:latest --push ./backend
-docker buildx build --platform linux/amd64,linux/arm64 -t VOTRE_USERNAME/cine-frontend:latest --push ./frontend
+# Construire et pousser les images multi-architecture (AMD64 + ARM64)
+docker buildx build --platform linux/amd64,linux/arm64 -t jsmadja/cine-backend:latest --push ./backend
+docker buildx build --platform linux/amd64,linux/arm64 -t jsmadja/cine-frontend:latest --push ./frontend
 ```
 
-### 2. Stack Portainer
+### Stack Portainer (avec images Docker Hub)
 
 ```yaml
 services:
   backend:
-    image: VOTRE_USERNAME/cine-backend:latest
+    image: jsmadja/cine-backend:latest
     container_name: cine-backend
-    ports:
-      - "3000:3000"
     volumes:
       - ./cache:/app/cache
     restart: unless-stopped
+    environment:
+      - NODE_ENV=production
 
   frontend:
-    image: VOTRE_USERNAME/cine-frontend:latest
+    image: jsmadja/cine-frontend:latest
     container_name: cine-frontend
     ports:
       - "8080:80"
@@ -161,10 +161,23 @@ services:
     restart: unless-stopped
 ```
 
-### 3. Accès
+### Option 2 : Build sur le NAS (si Git est disponible)
 
-- **Frontend** : `http://IP_DU_NAS:8080`
-- **Backend** : `http://IP_DU_NAS:3000/api`
+```bash
+# Cloner le repo
+git clone <votre-repo> cine
+cd cine
+
+# Build et lancer
+docker compose up -d
+```
+
+### Accès
+
+- **Application** : `http://IP_DU_NAS:8080`
+- L'API est accessible via le proxy nginx sur `/api`
+
+> **Note** : Le frontend utilise un proxy nginx pour communiquer avec le backend, donc seul le port 8080 est nécessaire.
 
 ## Licence
 

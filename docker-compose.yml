@@ -11,12 +11,9 @@ services:
     environment:
       - NODE_ENV=production
 
-  # Frontend Vue.js
+  # Frontend Vue.js (avec proxy vers backend)
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: http://localhost:3000/api
+    build: ./frontend
     container_name: cine-frontend
     ports:
       - "8080:80"

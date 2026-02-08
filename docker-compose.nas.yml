@@ -1,0 +1,25 @@
+# docker-compose pour NAS (Portainer)
+# Utilise les images publiées sur Docker Hub
+
+services:
+  backend:
+    image: jsmadja/cine-backend:latest
+    container_name: cine-backend
+    volumes:
+      - cine-cache:/app/cache
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+  frontend:
+    image: jsmadja/cine-frontend:latest
+    container_name: cine-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  cine-cache:
+
