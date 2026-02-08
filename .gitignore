@@ -583,3 +583,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+/cache/films.html
+/cache/programs_cache.json
+/cache/xmltv_fr.xml
