@@ -1,0 +1,47 @@
+services:
+  # Service principal : génère la liste des films et la page HTML
+  films:
+    build: .
+    container_name: cine-films
+    volumes:
+      - ./cache:/app/cache
+    command: node dist/index.js
+
+  # Serveur web pour afficher la page des films
+  web:
+    image: nginx:alpine
+    container_name: cine-web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./cache:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  # Serveur API Freebox pour programmer les enregistrements
+  server:
+    build: .
+    container_name: cine-server
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./cache:/app/cache
+    command: node dist/server/index.js
+    restart: unless-stopped
+
+  # Service de développement avec hot reload
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cine-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    profiles:
+      - dev
+
+
+
