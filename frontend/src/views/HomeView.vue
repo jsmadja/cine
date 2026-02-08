@@ -6,6 +6,7 @@ import MovieCard from '@/components/MovieCard.vue'
 import FreeboxModal from '@/components/FreeboxModal.vue'
 import ChannelFilter from '@/components/ChannelFilter.vue'
 import CategoryFilter from '@/components/CategoryFilter.vue'
+import RecordingsPanel from '@/components/RecordingsPanel.vue'
 import dayjs from 'dayjs'
 
 const moviesStore = useMoviesStore()
@@ -99,6 +100,7 @@ async function recordMovie(movie: any) {
         </button>
         <ChannelFilter />
         <CategoryFilter />
+        <RecordingsPanel />
         <div
           class="freebox-status"
           :class="{ connected: freeboxStore.connected, error: !freeboxStore.connected }"
