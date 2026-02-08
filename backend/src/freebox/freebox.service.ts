@@ -230,14 +230,14 @@ export class FreeboxService {
 
       this.logger.log(`📺 Chaîne trouvée: ${channel.name}`);
 
-      // Programmer l'enregistrement
+      // Programmer l'enregistrement avec marges (5mn avant, 15mn après)
       const recordRequest = {
         channel_uuid: channel.uuid,
         start: request.start,
         end: request.end,
         name: request.name,
-        margin_before: 5 * 60,
-        margin_after: 10 * 60,
+        margin_before: 5 * 60,  // 5 minutes en secondes
+        margin_after: 15 * 60,  // 15 minutes en secondes
       };
 
       const recordResponse = await this.freeboxApi('/pvr/programmed/', 'POST', recordRequest, sessionToken);
