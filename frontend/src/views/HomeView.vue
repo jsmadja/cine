@@ -4,6 +4,7 @@ import { useMoviesStore } from '@/stores/movies'
 import { useFreeboxStore } from '@/stores/freebox'
 import MovieCard from '@/components/MovieCard.vue'
 import FreeboxModal from '@/components/FreeboxModal.vue'
+import ChannelFilter from '@/components/ChannelFilter.vue'
 import dayjs from 'dayjs'
 
 const moviesStore = useMoviesStore()
@@ -44,6 +45,7 @@ function formatLastUpdated(date: Date | null) {
 <template>
   <div class="home-view">
     <header>
+      <h1>🎬 Films TV</h1>
       <div class="stats">
         <span class="stat">📺 {{ moviesStore.totalMovies }} film(s)</span>
         <span class="stat">📅 {{ moviesStore.totalDays }} jour(s)</span>
@@ -51,6 +53,7 @@ function formatLastUpdated(date: Date | null) {
         <button class="refresh-btn" :disabled="refreshing" @click="handleRefresh">
           {{ refreshing ? '⏳' : '🔄' }} Rafraîchir
         </button>
+        <ChannelFilter />
         <div
           class="freebox-status"
           :class="{ connected: freeboxStore.connected, error: !freeboxStore.connected }"
@@ -181,7 +184,7 @@ header h1 {
   align-items: center;
   gap: 0.5rem;
   background: rgba(0, 0, 0, 0.3);
-  padding: 0;
+  padding: 0.5rem 1.25rem;
   border-radius: 20px;
   cursor: pointer;
   transition: background 0.2s;
