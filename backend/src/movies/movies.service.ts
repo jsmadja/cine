@@ -17,12 +17,12 @@ const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 heures
 // Catégories de films
 const MOVIE_CATEGORIES = ['film', 'cinéma', 'cinema', 'long métrage', 'long metrage'];
 const EXCLUDED_CATEGORIES = ['téléfilm', 'telefilm'];
+const MIN_MOVIE_DURATION_MINUTES = 60; // Durée minimale d'un film en minutes
 
 // Chaînes par défaut (modifiable)
 const DEFAULT_CHANNEL_FILTER = [
   'RTL9.fr', 'TMC.fr', 'Arte.fr', 'France2.fr', 'France3.fr',
-  'France4.fr', 'France5.fr', 'W9.fr', 'TF1.fr', 'M6.fr',
-  'Canal+.fr', 'CanalPlusCinema.fr', 'Cine+Premier.fr', 'Cine+Frisson.fr',
+  'France4.fr', 'France5.fr', 'W9.fr', 'TF1.fr', 'M6.fr'
 ];
 
 interface XmltvProgramme {
@@ -203,16 +203,25 @@ export class MoviesService {
 
     // Extraire les films
     this.movies = [];
+    let shortFilmsCount = 0;
     for (const prog of filteredProgrammes) {
       if (this.isMovie(prog)) {
         this.movies.push(this.parseMovie(prog, channelsMap));
+      } else if (this.isCategoryMovie(prog)) {
+        // Compter les films trop courts (catégorie film mais durée < 1h)
+        const startDate = this.parseXmltvDate(prog['@_start']);
+        const endDate = this.parseXmltvDate(prog['@_stop']);
+        const durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+        if (durationMinutes < MIN_MOVIE_DURATION_MINUTES) {
+          shortFilmsCount++;
+        }
       }
     }
 
     // Trier par date
     this.movies.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
-    this.logger.log(`🎬 ${this.movies.length} films trouvés`);
+    this.logger.log(`🎬 ${this.movies.length} films trouvés (${shortFilmsCount} exclus car < ${MIN_MOVIE_DURATION_MINUTES} min)`);
   }
 
   private isMovie(prog: XmltvProgramme): boolean {
@@ -224,7 +233,26 @@ export class MoviesService {
     );
     if (isExcluded) return false;
 
+    // Vérifier la durée minimale (1 heure)
+    const startDate = this.parseXmltvDate(prog['@_start']);
+    const endDate = this.parseXmltvDate(prog['@_stop']);
+    const durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+    console.log(durationMinutes+': '+JSON.stringify(prog.title));
+    if (durationMinutes < MIN_MOVIE_DURATION_MINUTES) return false;
+
     // Vérifier si c'est un film
+    return categories.some(cat =>
+      MOVIE_CATEGORIES.some(movieCat => cat.includes(movieCat))
+    );
+  }
+
+  // Vérifie si le programme est catégorisé comme film (sans vérifier la durée)
+  private isCategoryMovie(prog: XmltvProgramme): boolean {
+    const categories = this.extractCategories(prog.category).map(c => c.toLowerCase());
+    const isExcluded = categories.some(cat =>
+      EXCLUDED_CATEGORIES.some(excluded => cat.includes(excluded))
+    );
+    if (isExcluded) return false;
     return categories.some(cat =>
       MOVIE_CATEGORIES.some(movieCat => cat.includes(movieCat))
     );

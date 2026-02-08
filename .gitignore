@@ -592,3 +592,4 @@ FodyWeavers.xsd
 /cache/movies_cache.json
 /backend/cache/movies_cache.json
 /frontend/.vscode/extensions.json
+/backend/cache/freebox_config.json
