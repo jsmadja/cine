@@ -22,7 +22,7 @@ const MIN_MOVIE_DURATION_MINUTES = 60; // Durée minimale d'un film en minutes
 // Chaînes par défaut (modifiable)
 const DEFAULT_CHANNEL_FILTER = [
   'RTL9.fr', 'TMC.fr', 'Arte.fr', 'France2.fr', 'France3.fr',
-  'France4.fr', 'France5.fr', 'W9.fr', 'TF1.fr', 'M6.fr'
+  'France4.fr', 'France5.fr', 'W9.fr', 'TF1.fr', 'M6.fr', 'NT1.fr', '6ter.fr'
 ];
 
 interface XmltvProgramme {
@@ -237,7 +237,6 @@ export class MoviesService {
     const startDate = this.parseXmltvDate(prog['@_start']);
     const endDate = this.parseXmltvDate(prog['@_stop']);
     const durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
-    console.log(durationMinutes+': '+JSON.stringify(prog.title));
     if (durationMinutes < MIN_MOVIE_DURATION_MINUTES) return false;
 
     // Vérifier si c'est un film
@@ -311,10 +310,13 @@ export class MoviesService {
 
   // API Methods
   getMovies(channelFilter?: string[]): MoviesResponse {
-    let filteredMovies = this.movies;
+    const now = new Date();
+
+    // Filtrer les films passés (ne garder que ceux qui n'ont pas encore commencé ou sont en cours)
+    let filteredMovies = this.movies.filter(m => new Date(m.endDate) > now);
 
     if (channelFilter && channelFilter.length > 0) {
-      filteredMovies = this.movies.filter(m => channelFilter.includes(m.channelId));
+      filteredMovies = filteredMovies.filter(m => channelFilter.includes(m.channelId));
     }
 
     return {
