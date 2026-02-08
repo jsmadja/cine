@@ -5,6 +5,7 @@ import { useFreeboxStore } from '@/stores/freebox'
 import MovieCard from '@/components/MovieCard.vue'
 import FreeboxModal from '@/components/FreeboxModal.vue'
 import ChannelFilter from '@/components/ChannelFilter.vue'
+import CategoryFilter from '@/components/CategoryFilter.vue'
 import dayjs from 'dayjs'
 
 const moviesStore = useMoviesStore()
@@ -89,11 +90,7 @@ async function recordMovie(movie: any) {
 <template>
   <div class="home-view">
     <header>
-      <h1>🎬 Films TV</h1>
       <div class="stats">
-        <span class="stat">📺 {{ moviesStore.totalMovies }} film(s)</span>
-        <span class="stat">📅 {{ moviesStore.totalDays }} jour(s)</span>
-        <span class="stat">🔄 {{ formatLastUpdated(moviesStore.lastUpdated) }}</span>
         <button class="refresh-btn" :disabled="refreshing" @click="handleRefresh">
           {{ refreshing ? '⏳' : '🔄' }} Rafraîchir
         </button>
@@ -101,6 +98,7 @@ async function recordMovie(movie: any) {
           {{ viewMode === 'cards' ? '📋 Tableau' : '🎴 Cartes' }}
         </button>
         <ChannelFilter />
+        <CategoryFilter />
         <div
           class="freebox-status"
           :class="{ connected: freeboxStore.connected, error: !freeboxStore.connected }"
@@ -162,14 +160,14 @@ async function recordMovie(movie: any) {
       <!-- Vue Tableau -->
       <template v-else>
         <section
-          v-for="[day, channelMovies] in moviesStore.moviesByDayAndChannel"
+          v-for="[day, dayMovies] in moviesStore.moviesByDay"
           :key="day"
           class="day-section"
         >
           <div class="day-header">
             <h2>📅 {{ day }}</h2>
             <span class="day-count">
-              {{ [...channelMovies.values()].reduce((sum, m) => sum + m.length, 0) }} film(s)
+              {{ dayMovies.length }} film(s)
             </span>
           </div>
 
@@ -181,6 +179,7 @@ async function recordMovie(movie: any) {
                   <th class="th-time">Heure</th>
                   <th class="th-channel">Chaîne</th>
                   <th class="th-title">Titre</th>
+                  <th class="th-categories">Catégories</th>
                   <th class="th-year">Année</th>
                   <th class="th-duration">Durée</th>
                   <th class="th-rating">Note</th>
@@ -188,49 +187,52 @@ async function recordMovie(movie: any) {
                 </tr>
               </thead>
               <tbody>
-                <template v-for="[, movies] in channelMovies" :key="movies[0]?.id">
-                  <tr
-                    v-for="movie in movies"
-                    :key="movie.id"
-                    :class="{ 'is-scheduled': movie.isScheduled }"
-                  >
-                    <td class="td-status">
-                      <span v-if="movie.isScheduled" class="status-badge scheduled" title="Programmé">✅</span>
-                      <span v-else class="status-badge not-scheduled" title="Non programmé">⚪</span>
-                    </td>
-                    <td class="td-time">{{ formatTime(movie.startDate) }}</td>
-                    <td class="td-channel">{{ movie.channel }}</td>
-                    <td class="td-title">
-                      <div class="title-cell">
-                        <span class="movie-name">{{ movie.name }}</span>
-                        <span v-if="movie.subtitle" class="movie-subtitle">{{ movie.subtitle }}</span>
-                      </div>
-                    </td>
-                    <td class="td-year">{{ movie.year || '-' }}</td>
-                    <td class="td-duration">{{ formatDuration(movie.startDate, movie.endDate) }}</td>
-                    <td class="td-rating">{{ movie.rating || '-' }}</td>
-                    <td class="td-action">
-                      <button
-                        v-if="!movie.isScheduled"
-                        class="btn-record-small"
-                        :class="{
-                          loading: freeboxStore.getRecordingState(movie.id) === 'loading',
-                          success: freeboxStore.getRecordingState(movie.id) === 'success',
-                          error: freeboxStore.getRecordingState(movie.id) === 'error'
-                        }"
-                        :disabled="freeboxStore.getRecordingState(movie.id) === 'loading' || freeboxStore.getRecordingState(movie.id) === 'success'"
-                        @click="recordMovie(movie)"
-                        title="Enregistrer sur Freebox"
-                      >
-                        <span v-if="freeboxStore.getRecordingState(movie.id) === 'loading'">⏳</span>
-                        <span v-else-if="freeboxStore.getRecordingState(movie.id) === 'success'">✅</span>
-                        <span v-else-if="freeboxStore.getRecordingState(movie.id) === 'error'">❌</span>
-                        <span v-else>⏺️</span>
-                      </button>
-                      <span v-else class="already-scheduled-badge">✅</span>
-                    </td>
-                  </tr>
-                </template>
+                <tr
+                  v-for="movie in dayMovies"
+                  :key="movie.id"
+                  :class="{ 'is-scheduled': movie.isScheduled }"
+                >
+                  <td class="td-status">
+                    <span v-if="movie.isScheduled" class="status-badge scheduled" title="Programmé">✅</span>
+                    <span v-else class="status-badge not-scheduled" title="Non programmé">⚪</span>
+                  </td>
+                  <td class="td-time">{{ formatTime(movie.startDate) }}</td>
+                  <td class="td-channel">{{ movie.channel }}</td>
+                  <td class="td-title">
+                    <div class="title-cell">
+                      <span class="movie-name">{{ movie.name }}</span>
+                      <span v-if="movie.subtitle" class="movie-subtitle">{{ movie.subtitle }}</span>
+                    </div>
+                  </td>
+                  <td class="td-categories">
+                    <div class="categories-cell">
+                      <span v-for="cat in movie.categories" :key="cat" class="category-tag-small">{{ cat }}</span>
+                    </div>
+                  </td>
+                  <td class="td-year">{{ movie.year || '-' }}</td>
+                  <td class="td-duration">{{ formatDuration(movie.startDate, movie.endDate) }}</td>
+                  <td class="td-rating">{{ movie.rating || '-' }}</td>
+                  <td class="td-action">
+                    <button
+                      v-if="!movie.isScheduled"
+                      class="btn-record-small"
+                      :class="{
+                        loading: freeboxStore.getRecordingState(movie.id) === 'loading',
+                        success: freeboxStore.getRecordingState(movie.id) === 'success',
+                        error: freeboxStore.getRecordingState(movie.id) === 'error'
+                      }"
+                      :disabled="freeboxStore.getRecordingState(movie.id) === 'loading' || freeboxStore.getRecordingState(movie.id) === 'success'"
+                      @click="recordMovie(movie)"
+                      title="Enregistrer sur Freebox"
+                    >
+                      <span v-if="freeboxStore.getRecordingState(movie.id) === 'loading'">⏳</span>
+                      <span v-else-if="freeboxStore.getRecordingState(movie.id) === 'success'">✅</span>
+                      <span v-else-if="freeboxStore.getRecordingState(movie.id) === 'error'">❌</span>
+                      <span v-else>⏺️</span>
+                    </button>
+                    <span v-else class="already-scheduled-badge">✅</span>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -620,6 +622,7 @@ footer {
 .th-time { width: 60px; }
 .th-channel { width: 120px; }
 .th-title { min-width: 200px; }
+.th-categories { min-width: 150px; }
 .th-year { width: 60px; }
 .th-duration { width: 70px; }
 .th-rating { width: 60px; }
@@ -628,10 +631,26 @@ footer {
 .td-status { text-align: center; }
 .td-time { color: #e50914; font-weight: 600; }
 .td-channel { color: #888; }
+.td-categories { }
 .td-year { color: #888; }
 .td-duration { color: #888; }
 .td-rating { color: #27ae60; font-weight: 500; }
 .td-action { text-align: center; }
+
+.categories-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.category-tag-small {
+  background: #333;
+  color: #aaa;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
 
 .title-cell {
   display: flex;
@@ -712,7 +731,9 @@ footer {
   }
 
   .th-rating,
-  .td-rating {
+  .td-rating,
+  .th-categories,
+  .td-categories {
     display: none;
   }
 }

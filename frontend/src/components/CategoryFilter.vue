@@ -11,42 +11,42 @@ function togglePanel() {
 </script>
 
 <template>
-  <div class="channel-filter">
+  <div class="category-filter">
     <button class="filter-toggle" @click="togglePanel">
-      📺 Chaînes
-      <span v-if="moviesStore.hiddenChannelsCount > 0" class="hidden-badge">
-        {{ moviesStore.hiddenChannelsCount }} masquée(s)
+      🏷️ Catégories
+      <span v-if="moviesStore.hiddenCategoriesCount > 0" class="hidden-badge">
+        {{ moviesStore.hiddenCategoriesCount }} masquée(s)
       </span>
       <span class="arrow" :class="{ open: isOpen }">▼</span>
     </button>
 
     <div v-if="isOpen" class="filter-panel">
       <div class="filter-header">
-        <h3>Filtrer par chaîne</h3>
+        <h3>Filtrer par catégorie</h3>
         <div class="filter-actions">
-          <button class="btn-small" @click="moviesStore.showAllChannels()">
+          <button class="btn-small" @click="moviesStore.showAllCategories()">
             ✅ Tout afficher
           </button>
-          <button class="btn-small" @click="moviesStore.hideAllChannels()">
+          <button class="btn-small" @click="moviesStore.hideAllCategories()">
             ❌ Tout masquer
           </button>
         </div>
       </div>
 
-      <div class="channels-list">
+      <div class="categories-list">
         <label
-          v-for="channel in moviesStore.availableChannels"
-          :key="channel.name"
-          class="channel-item"
-          :class="{ hidden: !moviesStore.isChannelVisible(channel.name) }"
+          v-for="category in moviesStore.availableCategories"
+          :key="category.name"
+          class="category-item"
+          :class="{ hidden: !moviesStore.isCategoryVisible(category.name) }"
         >
           <input
             type="checkbox"
-            :checked="moviesStore.isChannelVisible(channel.name)"
-            @change="moviesStore.toggleChannelVisibility(channel.name)"
+            :checked="moviesStore.isCategoryVisible(category.name)"
+            @change="moviesStore.toggleCategoryVisibility(category.name)"
           />
-          <span class="channel-name">{{ channel.name }}</span>
-          <span class="channel-count">{{ channel.count }} film(s)</span>
+          <span class="category-name">{{ category.name }}</span>
+          <span class="category-count">{{ category.count }}</span>
         </label>
       </div>
     </div>
@@ -54,7 +54,7 @@ function togglePanel() {
 </template>
 
 <style scoped>
-.channel-filter {
+.category-filter {
   position: relative;
 }
 
@@ -142,13 +142,13 @@ function togglePanel() {
   background: #444;
 }
 
-.channels-list {
+.categories-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.channel-item {
+.category-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -158,28 +158,28 @@ function togglePanel() {
   transition: background 0.2s;
 }
 
-.channel-item:hover {
+.category-item:hover {
   background: #252525;
 }
 
-.channel-item.hidden {
+.category-item.hidden {
   opacity: 0.5;
 }
 
-.channel-item input[type="checkbox"] {
+.category-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
   cursor: pointer;
   accent-color: #e50914;
 }
 
-.channel-name {
+.category-name {
   flex: 1;
   color: #fff;
   font-size: 0.9rem;
 }
 
-.channel-count {
+.category-count {
   color: #888;
   font-size: 0.8rem;
   background: #333;

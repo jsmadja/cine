@@ -8,12 +8,14 @@ import 'dayjs/locale/fr'
 dayjs.locale('fr')
 
 const HIDDEN_CHANNELS_KEY = 'cine_hidden_channels'
+const HIDDEN_CATEGORIES_KEY = 'cine_hidden_categories'
 
 export const useMoviesStore = defineStore('movies', () => {
   const movies = ref<Movie[]>([])
   const channels = ref<Channel[]>([])
   const selectedChannels = ref<string[]>([])
   const hiddenChannels = ref<Set<string>>(new Set())
+  const hiddenCategories = ref<Set<string>>(new Set())
   const lastUpdated = ref<Date | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -36,6 +38,27 @@ export const useMoviesStore = defineStore('movies', () => {
       localStorage.setItem(HIDDEN_CHANNELS_KEY, JSON.stringify([...hiddenChannels.value]))
     } catch (e) {
       console.error('Erreur sauvegarde chaînes masquées:', e)
+    }
+  }
+
+  // Charger les catégories masquées depuis le localStorage
+  function loadHiddenCategories() {
+    try {
+      const saved = localStorage.getItem(HIDDEN_CATEGORIES_KEY)
+      if (saved) {
+        hiddenCategories.value = new Set(JSON.parse(saved))
+      }
+    } catch (e) {
+      console.error('Erreur chargement catégories masquées:', e)
+    }
+  }
+
+  // Sauvegarder les catégories masquées
+  function saveHiddenCategories() {
+    try {
+      localStorage.setItem(HIDDEN_CATEGORIES_KEY, JSON.stringify([...hiddenCategories.value]))
+    } catch (e) {
+      console.error('Erreur sauvegarde catégories masquées:', e)
     }
   }
 
@@ -68,10 +91,45 @@ export const useMoviesStore = defineStore('movies', () => {
     saveHiddenChannels()
   }
 
-  // Films filtrés (sans les chaînes masquées), triés par date desc puis heure desc
+  // Masquer/afficher une catégorie
+  function toggleCategoryVisibility(category: string) {
+    if (hiddenCategories.value.has(category)) {
+      hiddenCategories.value.delete(category)
+    } else {
+      hiddenCategories.value.add(category)
+    }
+    hiddenCategories.value = new Set(hiddenCategories.value) // Force reactivity
+    saveHiddenCategories()
+  }
+
+  // Vérifier si une catégorie est visible
+  function isCategoryVisible(category: string): boolean {
+    return !hiddenCategories.value.has(category)
+  }
+
+  // Afficher toutes les catégories
+  function showAllCategories() {
+    hiddenCategories.value = new Set()
+    saveHiddenCategories()
+  }
+
+  // Masquer toutes les catégories
+  function hideAllCategories() {
+    const allCategories = new Set(movies.value.flatMap(m => m.categories))
+    hiddenCategories.value = allCategories
+    saveHiddenCategories()
+  }
+
+  // Films filtrés (sans les chaînes et catégories masquées), triés par date desc puis heure desc
   const filteredMovies = computed(() => {
     return movies.value
       .filter(m => !hiddenChannels.value.has(m.channel))
+      .filter(m => {
+        // Si le film n'a pas de catégorie, on l'affiche
+        if (!m.categories || m.categories.length === 0) return true
+        // Sinon, on vérifie qu'au moins une catégorie est visible
+        return m.categories.some(cat => !hiddenCategories.value.has(cat))
+      })
       .sort((a, b) => {
         // Tri par date décroissante, puis heure décroissante
         const dateA = new Date(a.startDate).getTime()
@@ -87,11 +145,24 @@ export const useMoviesStore = defineStore('movies', () => {
       channelSet.set(movie.channel, (channelSet.get(movie.channel) || 0) + 1)
     }
     return [...channelSet.entries()]
-      .sort((a, b) => b[1] - a[1]) // Trier par nombre de films
+      .sort((a, b) => a[0].localeCompare(b[0])) // Trier par ordre alphabétique
       .map(([name, count]) => ({ name, count }))
   })
 
-  // Grouper les films par jour (avec filtrage)
+  // Liste des catégories uniques présentes dans les films
+  const availableCategories = computed(() => {
+    const categorySet = new Map<string, number>()
+    for (const movie of movies.value) {
+      for (const category of movie.categories || []) {
+        categorySet.set(category, (categorySet.get(category) || 0) + 1)
+      }
+    }
+    return [...categorySet.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0])) // Trier par ordre alphabétique
+      .map(([name, count]) => ({ name, count }))
+  })
+
+  // Grouper les films par jour (avec filtrage), jours triés desc, films triés par heure asc
   const moviesByDay = computed(() => {
     const grouped = new Map<string, Movie[]>()
 
@@ -103,7 +174,19 @@ export const useMoviesStore = defineStore('movies', () => {
       grouped.get(day)!.push(movie)
     }
 
-    return grouped
+    // Trier les films par heure croissante dans chaque jour
+    for (const [day, dayMovies] of grouped) {
+      dayMovies.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    }
+
+    // Trier les jours par ordre décroissant
+    const sortedEntries = [...grouped.entries()].sort((a, b) => {
+      const dateA = dayjs(a[1][0]?.startDate).startOf('day').valueOf()
+      const dateB = dayjs(b[1][0]?.startDate).startOf('day').valueOf()
+      return dateB - dateA
+    })
+
+    return new Map(sortedEntries)
   })
 
   // Grouper par jour puis par chaîne (avec filtrage)
@@ -120,6 +203,11 @@ export const useMoviesStore = defineStore('movies', () => {
         byChannel.get(movie.channel)!.push(movie)
       }
 
+      // Trier les films par heure dans chaque chaîne
+      for (const [, channelMovies] of byChannel) {
+        channelMovies.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+      }
+
       // Trier par nombre de films
       const sorted = new Map(
         [...byChannel.entries()].sort((a, b) => b[1].length - a[1].length)
@@ -133,7 +221,8 @@ export const useMoviesStore = defineStore('movies', () => {
 
   const totalMovies = computed(() => filteredMovies.value.length)
   const totalDays = computed(() => moviesByDay.value.size)
-  const hiddenCount = computed(() => hiddenChannels.value.size)
+  const hiddenChannelsCount = computed(() => hiddenChannels.value.size)
+  const hiddenCategoriesCount = computed(() => hiddenCategories.value.size)
 
   async function fetchMovies() {
     loading.value = true
@@ -146,7 +235,8 @@ export const useMoviesStore = defineStore('movies', () => {
       movies.value = response.movies
       channels.value = response.channels
       lastUpdated.value = new Date(response.lastUpdated)
-      loadHiddenChannels() // Charger les préférences
+      loadHiddenChannels() // Charger les préférences chaînes
+      loadHiddenCategories() // Charger les préférences catégories
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Erreur de chargement'
       console.error('Erreur:', e)
@@ -188,6 +278,7 @@ export const useMoviesStore = defineStore('movies', () => {
     channels,
     selectedChannels,
     hiddenChannels,
+    hiddenCategories,
     lastUpdated,
     loading,
     error,
@@ -195,9 +286,11 @@ export const useMoviesStore = defineStore('movies', () => {
     moviesByDayAndChannel,
     totalMovies,
     totalDays,
-    hiddenCount,
+    hiddenChannelsCount,
+    hiddenCategoriesCount,
     filteredMovies,
     availableChannels,
+    availableCategories,
     fetchMovies,
     refreshMovies,
     loadFilter,
@@ -206,6 +299,10 @@ export const useMoviesStore = defineStore('movies', () => {
     isChannelVisible,
     showAllChannels,
     hideAllChannels,
+    toggleCategoryVisibility,
+    isCategoryVisible,
+    showAllCategories,
+    hideAllCategories,
   }
 })
 
