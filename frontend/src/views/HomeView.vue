@@ -12,10 +12,17 @@ const freeboxStore = useFreeboxStore()
 
 const showFreeboxModal = ref(false)
 const refreshing = ref(false)
+const viewMode = ref<'cards' | 'table'>('cards')
 
 let statusInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
+  // Charger le mode d'affichage sauvegardé
+  const savedViewMode = localStorage.getItem('cine_view_mode')
+  if (savedViewMode === 'table' || savedViewMode === 'cards') {
+    viewMode.value = savedViewMode
+  }
+
   await moviesStore.fetchMovies()
   await freeboxStore.checkStatus()
 
@@ -36,9 +43,46 @@ async function handleRefresh() {
   refreshing.value = false
 }
 
+function toggleViewMode() {
+  viewMode.value = viewMode.value === 'cards' ? 'table' : 'cards'
+  localStorage.setItem('cine_view_mode', viewMode.value)
+}
+
 function formatLastUpdated(date: Date | null) {
   if (!date) return 'Jamais'
   return dayjs(date).format('DD/MM/YYYY HH:mm')
+}
+
+function formatTime(date: string) {
+  return dayjs(date).format('HH:mm')
+}
+
+function formatDate(date: string) {
+  return dayjs(date).format('DD/MM')
+}
+
+function formatDuration(start: string, end: string) {
+  const minutes = dayjs(end).diff(dayjs(start), 'minute')
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return hours > 0 ? `${hours}h${mins.toString().padStart(2, '0')}` : `${mins}min`
+}
+
+async function recordMovie(movie: any) {
+  const start = Math.floor(new Date(movie.startDate).getTime() / 1000)
+  const end = Math.floor(new Date(movie.endDate).getTime() / 1000)
+
+  await freeboxStore.recordMovie(
+    movie.id,
+    movie.channelId,
+    movie.channel,
+    start,
+    end,
+    movie.name,
+  )
+
+  // Rafraîchir pour mettre à jour le statut isScheduled
+  setTimeout(() => moviesStore.fetchMovies(), 2000)
 }
 </script>
 
@@ -52,6 +96,9 @@ function formatLastUpdated(date: Date | null) {
         <span class="stat">🔄 {{ formatLastUpdated(moviesStore.lastUpdated) }}</span>
         <button class="refresh-btn" :disabled="refreshing" @click="handleRefresh">
           {{ refreshing ? '⏳' : '🔄' }} Rafraîchir
+        </button>
+        <button class="view-toggle" @click="toggleViewMode">
+          {{ viewMode === 'cards' ? '📋 Tableau' : '🎴 Cartes' }}
         </button>
         <ChannelFilter />
         <div
@@ -81,7 +128,8 @@ function formatLastUpdated(date: Date | null) {
         <p>📭 Aucun film trouvé</p>
       </div>
 
-      <template v-else>
+      <!-- Vue Cartes -->
+      <template v-else-if="viewMode === 'cards'">
         <section
           v-for="[day, channelMovies] in moviesStore.moviesByDayAndChannel"
           :key="day"
@@ -107,6 +155,84 @@ function formatLastUpdated(date: Date | null) {
             <div class="movies-grid">
               <MovieCard v-for="movie in movies" :key="movie.id" :movie="movie" />
             </div>
+          </div>
+        </section>
+      </template>
+
+      <!-- Vue Tableau -->
+      <template v-else>
+        <section
+          v-for="[day, channelMovies] in moviesStore.moviesByDayAndChannel"
+          :key="day"
+          class="day-section"
+        >
+          <div class="day-header">
+            <h2>📅 {{ day }}</h2>
+            <span class="day-count">
+              {{ [...channelMovies.values()].reduce((sum, m) => sum + m.length, 0) }} film(s)
+            </span>
+          </div>
+
+          <div class="table-container">
+            <table class="movies-table">
+              <thead>
+                <tr>
+                  <th class="th-status">⏺️</th>
+                  <th class="th-time">Heure</th>
+                  <th class="th-channel">Chaîne</th>
+                  <th class="th-title">Titre</th>
+                  <th class="th-year">Année</th>
+                  <th class="th-duration">Durée</th>
+                  <th class="th-rating">Note</th>
+                  <th class="th-action">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="[, movies] in channelMovies" :key="movies[0]?.id">
+                  <tr
+                    v-for="movie in movies"
+                    :key="movie.id"
+                    :class="{ 'is-scheduled': movie.isScheduled }"
+                  >
+                    <td class="td-status">
+                      <span v-if="movie.isScheduled" class="status-badge scheduled" title="Programmé">✅</span>
+                      <span v-else class="status-badge not-scheduled" title="Non programmé">⚪</span>
+                    </td>
+                    <td class="td-time">{{ formatTime(movie.startDate) }}</td>
+                    <td class="td-channel">{{ movie.channel }}</td>
+                    <td class="td-title">
+                      <div class="title-cell">
+                        <span class="movie-name">{{ movie.name }}</span>
+                        <span v-if="movie.subtitle" class="movie-subtitle">{{ movie.subtitle }}</span>
+                      </div>
+                    </td>
+                    <td class="td-year">{{ movie.year || '-' }}</td>
+                    <td class="td-duration">{{ formatDuration(movie.startDate, movie.endDate) }}</td>
+                    <td class="td-rating">{{ movie.rating || '-' }}</td>
+                    <td class="td-action">
+                      <button
+                        v-if="!movie.isScheduled"
+                        class="btn-record-small"
+                        :class="{
+                          loading: freeboxStore.getRecordingState(movie.id) === 'loading',
+                          success: freeboxStore.getRecordingState(movie.id) === 'success',
+                          error: freeboxStore.getRecordingState(movie.id) === 'error'
+                        }"
+                        :disabled="freeboxStore.getRecordingState(movie.id) === 'loading' || freeboxStore.getRecordingState(movie.id) === 'success'"
+                        @click="recordMovie(movie)"
+                        title="Enregistrer sur Freebox"
+                      >
+                        <span v-if="freeboxStore.getRecordingState(movie.id) === 'loading'">⏳</span>
+                        <span v-else-if="freeboxStore.getRecordingState(movie.id) === 'success'">✅</span>
+                        <span v-else-if="freeboxStore.getRecordingState(movie.id) === 'error'">❌</span>
+                        <span v-else>⏺️</span>
+                      </button>
+                      <span v-else class="already-scheduled-badge">✅</span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
         </section>
       </template>
@@ -177,6 +303,21 @@ header h1 {
 .refresh-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.view-toggle {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.view-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .freebox-status {
@@ -421,6 +562,182 @@ footer {
 
   footer {
     padding: 1.5rem 1rem;
+  }
+}
+
+/* Styles pour la vue tableau */
+.table-container {
+  overflow-x: auto;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid #333;
+}
+
+.movies-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.movies-table thead {
+  background: #252525;
+  position: sticky;
+  top: 0;
+}
+
+.movies-table th {
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #fff;
+  border-bottom: 2px solid #333;
+  white-space: nowrap;
+}
+
+.movies-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #2a2a2a;
+  vertical-align: middle;
+}
+
+.movies-table tbody tr {
+  transition: background 0.2s;
+}
+
+.movies-table tbody tr:hover {
+  background: #252525;
+}
+
+.movies-table tbody tr.is-scheduled {
+  background: rgba(39, 174, 96, 0.1);
+}
+
+.movies-table tbody tr.is-scheduled:hover {
+  background: rgba(39, 174, 96, 0.2);
+}
+
+.th-status { width: 50px; text-align: center; }
+.th-time { width: 60px; }
+.th-channel { width: 120px; }
+.th-title { min-width: 200px; }
+.th-year { width: 60px; }
+.th-duration { width: 70px; }
+.th-rating { width: 60px; }
+.th-action { width: 70px; text-align: center; }
+
+.td-status { text-align: center; }
+.td-time { color: #e50914; font-weight: 600; }
+.td-channel { color: #888; }
+.td-year { color: #888; }
+.td-duration { color: #888; }
+.td-rating { color: #27ae60; font-weight: 500; }
+.td-action { text-align: center; }
+
+.title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.movie-name {
+  color: #fff;
+  font-weight: 500;
+}
+
+.movie-subtitle {
+  color: #666;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.status-badge {
+  font-size: 1rem;
+}
+
+.status-badge.scheduled {
+  color: #27ae60;
+}
+
+.status-badge.not-scheduled {
+  color: #555;
+}
+
+.btn-record-small {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.btn-record-small:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9, #1f6dad);
+  transform: scale(1.1);
+}
+
+.btn-record-small:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-record-small.loading {
+  background: #f39c12;
+}
+
+.btn-record-small.success {
+  background: #27ae60;
+}
+
+.btn-record-small.error {
+  background: #e74c3c;
+}
+
+.already-scheduled-badge {
+  color: #27ae60;
+  font-size: 1rem;
+}
+
+/* Responsive tableau */
+@media (max-width: 1024px) {
+  .movies-table {
+    font-size: 0.8rem;
+  }
+
+  .movies-table th,
+  .movies-table td {
+    padding: 0.5rem;
+  }
+
+  .th-rating,
+  .td-rating {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .table-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .movies-table {
+    font-size: 0.75rem;
+  }
+
+  .th-year,
+  .td-year,
+  .th-duration,
+  .td-duration {
+    display: none;
+  }
+
+  .movie-subtitle {
+    display: none;
   }
 }
 </style>

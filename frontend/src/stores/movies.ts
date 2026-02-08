@@ -68,9 +68,16 @@ export const useMoviesStore = defineStore('movies', () => {
     saveHiddenChannels()
   }
 
-  // Films filtrés (sans les chaînes masquées)
+  // Films filtrés (sans les chaînes masquées), triés par date desc puis heure desc
   const filteredMovies = computed(() => {
-    return movies.value.filter(m => !hiddenChannels.value.has(m.channel))
+    return movies.value
+      .filter(m => !hiddenChannels.value.has(m.channel))
+      .sort((a, b) => {
+        // Tri par date décroissante, puis heure décroissante
+        const dateA = new Date(a.startDate).getTime()
+        const dateB = new Date(b.startDate).getTime()
+        return dateB - dateA
+      })
   })
 
   // Liste des chaînes uniques présentes dans les films
