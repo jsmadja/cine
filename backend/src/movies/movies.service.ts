@@ -219,8 +219,8 @@ export class MoviesService {
       }
     }
 
-    // Trier par date
-    this.movies.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    // Trier par date (ordre antéchronologique - les plus lointains d'abord)
+    this.movies.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 
     this.logger.log(`🎬 ${this.movies.length} films trouvés (${shortFilmsCount} exclus car < ${MIN_MOVIE_DURATION_MINUTES} min)`);
   }
