@@ -67,7 +67,7 @@ export async function freeboxApi(
         body: body ? JSON.stringify(body) : undefined,
     });
 
-    return response.json();
+    return await response.json() as FreeboxApiResponse;
 }
 
 /**

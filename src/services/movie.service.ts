@@ -2,16 +2,36 @@
  * Service de filtrage des films
  */
 
-import { MOVIE_CATEGORIES, CHANNEL_FILTER } from "../config";
+import { MOVIE_CATEGORIES, CHANNEL_FILTER, EXCLUDED_CATEGORIES } from "../config";
 import { ParsedProgram, Movie } from "../models";
 
 /**
- * Vérifie si un programme est un film
+ * Vérifie si un programme est un film (et pas un téléfilm)
  */
 export function isMovie(program: ParsedProgram): boolean {
     const categories = program.categories.map((c) => c.toLowerCase());
+
+    // Vérifier si c'est une catégorie exclue (téléfilm)
+    const isExcluded = categories.some((cat) =>
+        EXCLUDED_CATEGORIES.some((excludedCat) => cat.includes(excludedCat))
+    );
+
+    if (isExcluded) {
+        return false;
+    }
+
+    // Vérifier si c'est un film
     return categories.some((cat) =>
         MOVIE_CATEGORIES.some((movieCat) => cat.includes(movieCat))
+    );
+}
+
+/**
+ * Vérifie si une catégorie est exclue
+ */
+function isExcludedCategory(cat: string): boolean {
+    return EXCLUDED_CATEGORIES.some((excludedCat) =>
+        cat.toLowerCase().includes(excludedCat)
     );
 }
 
@@ -126,7 +146,13 @@ export function printFilterStats(
         const isMovieCat = MOVIE_CATEGORIES.some((movieCat) =>
             cat.toLowerCase().includes(movieCat)
         );
-        const marker = isMovieCat ? "🎬" : "  ";
+        const isExcluded = isExcludedCategory(cat);
+        let marker = "  ";
+        if (isExcluded) {
+            marker = "🚫";
+        } else if (isMovieCat) {
+            marker = "🎬";
+        }
         console.log(`   ${marker} ${cat}: ${count} programme(s)`);
     }
 

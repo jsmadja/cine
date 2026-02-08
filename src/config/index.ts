@@ -49,10 +49,14 @@ export const MOVIE_CATEGORIES = [
     "film",
     "cinéma",
     "cinema",
-    "téléfilm",
-    "telefilm",
     "long métrage",
     "long metrage",
+];
+
+// Catégories à exclure (même si elles contiennent "film")
+export const EXCLUDED_CATEGORIES = [
+    "téléfilm",
+    "telefilm",
 ];
 
 // Configuration de la page HTML générée
