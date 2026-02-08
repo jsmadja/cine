@@ -199,3 +199,68 @@ L'enregistrement inclut automatiquement :
 
 ISC
 
+---
+
+## Publier l'image Docker (pour NAS/Portainer)
+
+### 1. Se connecter à Docker Hub
+
+```bash
+docker login
+```
+
+### 2. Construire et taguer l'image
+
+```bash
+# Remplacer VOTRE_USERNAME par votre nom d'utilisateur Docker Hub
+docker build -t VOTRE_USERNAME/cine:latest .
+
+# Pour une image multi-architecture (ARM64 pour NAS UGreen)
+docker buildx create --use
+docker buildx build --platform linux/amd64,linux/arm64 -t VOTRE_USERNAME/cine:latest --push .
+```
+
+### 3. Pousser l'image
+
+```bash
+docker push VOTRE_USERNAME/cine:latest
+```
+
+### 4. Utiliser sur Portainer (NAS UGreen)
+
+Dans Portainer, créez une nouvelle stack avec ce `docker-compose.yml` :
+
+```yaml
+services:
+  films:
+    image: jsmadja/cine:latest
+    container_name: cine-films
+    volumes:
+      - ./cache:/app/cache
+    command: node dist/index.js
+
+  web:
+    image: nginx:alpine
+    container_name: cine-web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./cache:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  server:
+    image: jsmadja/cine:latest
+    container_name: cine-server
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./cache:/app/cache
+    command: node dist/server/index.js
+    restart: unless-stopped
+```
+
+### 5. Accéder depuis le NAS
+
+- Page des films : `http://IP_DU_NAS:8080/films.html`
+- API Freebox : `http://IP_DU_NAS:3000/api/freebox/status`
+
