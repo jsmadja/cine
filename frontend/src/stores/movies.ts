@@ -120,6 +120,41 @@ export const useMoviesStore = defineStore('movies', () => {
     saveHiddenCategories()
   }
 
+  // Exporter les filtres (chaînes et catégories masquées)
+  function exportFilters(): string {
+    const filters = {
+      version: 1,
+      hiddenChannels: [...hiddenChannels.value],
+      hiddenCategories: [...hiddenCategories.value],
+      exportDate: new Date().toISOString()
+    }
+    return JSON.stringify(filters, null, 2)
+  }
+
+  // Importer les filtres
+  function importFilters(jsonString: string): { success: boolean; message: string } {
+    try {
+      const data = JSON.parse(jsonString)
+
+      if (!data.version || !Array.isArray(data.hiddenChannels) || !Array.isArray(data.hiddenCategories)) {
+        return { success: false, message: 'Format de fichier invalide' }
+      }
+
+      hiddenChannels.value = new Set(data.hiddenChannels)
+      hiddenCategories.value = new Set(data.hiddenCategories)
+
+      saveHiddenChannels()
+      saveHiddenCategories()
+
+      return {
+        success: true,
+        message: `Importé: ${data.hiddenChannels.length} chaînes masquées, ${data.hiddenCategories.length} catégories masquées`
+      }
+    } catch (e) {
+      return { success: false, message: 'Erreur de parsing JSON' }
+    }
+  }
+
   // Films filtrés (sans les chaînes et catégories masquées), triés par date desc puis heure desc
   const filteredMovies = computed(() => {
     return movies.value
@@ -303,6 +338,8 @@ export const useMoviesStore = defineStore('movies', () => {
     isCategoryVisible,
     showAllCategories,
     hideAllCategories,
+    exportFilters,
+    importFilters,
   }
 })
 
