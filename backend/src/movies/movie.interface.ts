@@ -15,6 +15,8 @@ export interface Movie {
   directors?: string[];
   actors?: string[];
   isScheduled?: boolean; // true si déjà programmé sur Freebox
+  imdbRating?: string | null; // Note IMDB (ex: "7.5")
+  imdbID?: string | null; // ID IMDB (ex: "tt1234567")
 }
 
 export interface Channel {

@@ -9,8 +9,21 @@ const api = axios.create({
 })
 
 export const moviesApi = {
-  getMovies: async (channels?: string[]): Promise<MoviesResponse> => {
-    const params = channels?.length ? { channels: channels.join(',') } : {}
+  getMovies: async (
+    channels?: string[],
+    hiddenChannels?: string[],
+    hiddenCategories?: string[],
+  ): Promise<MoviesResponse> => {
+    const params: Record<string, string> = {}
+    if (channels?.length) {
+      params.channels = channels.join(',')
+    }
+    if (hiddenChannels?.length) {
+      params.hiddenChannels = hiddenChannels.join(',')
+    }
+    if (hiddenCategories?.length) {
+      params.hiddenCategories = hiddenCategories.join(',')
+    }
     const response = await api.get<MoviesResponse>('/movies', { params })
     return response.data
   },

@@ -264,14 +264,21 @@ export const useMoviesStore = defineStore('movies', () => {
     error.value = null
 
     try {
+      // Charger les préférences d'abord si pas encore fait
+      if (hiddenChannels.value.size === 0 && hiddenCategories.value.size === 0) {
+        loadHiddenChannels()
+        loadHiddenCategories()
+      }
+
+      // Envoyer les filtres à l'API pour optimiser la récupération des notes IMDB
       const response = await moviesApi.getMovies(
-        selectedChannels.value.length > 0 ? selectedChannels.value : undefined
+        selectedChannels.value.length > 0 ? selectedChannels.value : undefined,
+        [...hiddenChannels.value],
+        [...hiddenCategories.value],
       )
       movies.value = response.movies
       channels.value = response.channels
       lastUpdated.value = new Date(response.lastUpdated)
-      loadHiddenChannels() // Charger les préférences chaînes
-      loadHiddenCategories() // Charger les préférences catégories
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Erreur de chargement'
       console.error('Erreur:', e)

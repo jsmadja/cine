@@ -15,6 +15,8 @@ export interface Movie {
   directors?: string[]
   actors?: string[]
   isScheduled?: boolean
+  imdbRating?: string | null
+  imdbID?: string | null
 }
 
 export interface Channel {

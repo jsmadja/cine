@@ -6,6 +6,7 @@ import {XMLParser} from 'fast-xml-parser';
 import AdmZip from 'adm-zip';
 import {Channel, Movie, MoviesResponse} from './movie.interface';
 import {FreeboxService} from '../freebox/freebox.service';
+import {ImdbService} from './imdb.service';
 
 // Configuration
 const XMLTV_URL = 'https://xmltvfr.fr/xmltv/xmltv_fr.zip';
@@ -49,7 +50,10 @@ export class MoviesService {
     private lastUpdated: Date = new Date(0);
     private channelFilter: string[] = DEFAULT_CHANNEL_FILTER;
 
-    constructor(private readonly freeboxService: FreeboxService) {
+    constructor(
+        private readonly freeboxService: FreeboxService,
+        private readonly imdbService: ImdbService,
+    ) {
         this.ensureCacheDir();
         this.loadFromCache();
     }
@@ -302,24 +306,61 @@ export class MoviesService {
     }
 
     // API Methods
-    async getMovies(channelFilter?: string[]): Promise<MoviesResponse> {
+    async getMovies(
+        channelFilter?: string[],
+        hiddenChannels: string[] = [],
+        hiddenCategories: string[] = [],
+    ): Promise<MoviesResponse> {
         const now = new Date();
 
         // Filtrer les films passés (ne garder que ceux qui n'ont pas encore commencé ou sont en cours)
-        let filteredMovies = this.movies.filter(m => new Date(m.endDate) > now);
+        let allMovies = this.movies.filter(m => new Date(m.endDate) > now);
 
         if (channelFilter && channelFilter.length > 0) {
-            filteredMovies = filteredMovies.filter(m => channelFilter.includes(m.channelId));
+            allMovies = allMovies.filter(m => channelFilter.includes(m.channelId));
         }
+
+        // Déterminer les films visibles (pour lesquels on récupère les notes IMDB)
+        let visibleMovies = allMovies;
+        const hiddenChannelSet = new Set(hiddenChannels);
+        const hiddenCategorySet = new Set(hiddenCategories);
+
+        if (hiddenChannels.length > 0) {
+            visibleMovies = visibleMovies.filter(m => !hiddenChannelSet.has(m.channel));
+        }
+
+        if (hiddenCategories.length > 0) {
+            visibleMovies = visibleMovies.filter(m => {
+                if (!m.categories || m.categories.length === 0) return true;
+                return m.categories.some(cat => !hiddenCategorySet.has(cat));
+            });
+        }
+
+        this.logger.log(`🔍 Films: ${allMovies.length} total, ${visibleMovies.length} visibles (IMDB uniquement pour ceux-ci)`);
 
         // Récupérer les enregistrements programmés sur la Freebox
         const scheduledRecordings = await this.getScheduledRecordings();
 
-        // Enrichir les films avec l'info d'enregistrement
-        const enrichedMovies = filteredMovies.map(movie => ({
-            ...movie,
-            isScheduled: this.isMovieScheduled(movie, scheduledRecordings),
-        }));
+        // Récupérer les notes IMDB uniquement pour les films visibles (optimisé)
+        const imdbRatings = await this.imdbService.getRatingsForMovies(
+            visibleMovies.map(m => ({ name: m.name, year: m.year }))
+        );
+
+        // Créer un set des IDs de films visibles pour lookup rapide
+        const visibleMovieIds = new Set(visibleMovies.map(m => m.id));
+
+        // Enrichir tous les films (les non-visibles n'auront pas de note IMDB)
+        const enrichedMovies = allMovies.map(movie => {
+            const isVisible = visibleMovieIds.has(movie.id);
+            const imdbKey = this.imdbService.getMovieKey(movie.name, movie.year);
+            const imdbData = isVisible ? imdbRatings.get(imdbKey) : undefined;
+            return {
+                ...movie,
+                isScheduled: this.isMovieScheduled(movie, scheduledRecordings),
+                imdbRating: imdbData?.imdbRating || null,
+                imdbID: imdbData?.imdbID || null,
+            };
+        });
 
         return {
             movies: enrichedMovies,

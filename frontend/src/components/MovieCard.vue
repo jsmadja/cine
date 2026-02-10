@@ -67,6 +67,16 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
         <span class="movie-time">🕐 {{ formatTime(movie.startDate) }}</span>
         <span class="movie-duration">{{ formatDuration(movie.startDate, movie.endDate) }}</span>
         <span v-if="movie.rating" class="movie-rating">👥 {{ movie.rating }}</span>
+        <a
+          v-if="movie.imdbRating && movie.imdbID"
+          :href="`https://www.imdb.com/title/${movie.imdbID}`"
+          target="_blank"
+          class="imdb-rating"
+          @click.stop
+        >
+          ⭐ {{ movie.imdbRating }}
+        </a>
+        <span v-else-if="movie.imdbRating" class="imdb-rating">⭐ {{ movie.imdbRating }}</span>
       </div>
 
       <div class="movie-categories">
@@ -220,6 +230,22 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
 .movie-rating {
   background: #2d5a27;
   color: white;
+}
+
+.imdb-rating {
+  background: linear-gradient(135deg, #f5c518, #d4a516);
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #000;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+a.imdb-rating:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(245, 197, 24, 0.4);
 }
 
 .movie-categories {

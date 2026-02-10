@@ -186,7 +186,7 @@ async function recordMovie(movie: any) {
                   <th class="th-categories">Catégories</th>
                   <th class="th-year">Année</th>
                   <th class="th-duration">Durée</th>
-                  <th class="th-rating">Note</th>
+                  <th class="th-rating">IMDB</th>
                   <th class="th-action">Action</th>
                 </tr>
               </thead>
@@ -215,7 +215,19 @@ async function recordMovie(movie: any) {
                   </td>
                   <td class="td-year">{{ movie.year || '-' }}</td>
                   <td class="td-duration">{{ formatDuration(movie.startDate, movie.endDate) }}</td>
-                  <td class="td-rating">{{ movie.rating || '-' }}</td>
+                  <td class="td-rating">
+                    <a
+                      v-if="movie.imdbRating && movie.imdbID"
+                      :href="`https://www.imdb.com/title/${movie.imdbID}`"
+                      target="_blank"
+                      class="imdb-link"
+                      :title="`Voir sur IMDB`"
+                    >
+                      ⭐ {{ movie.imdbRating }}
+                    </a>
+                    <span v-else-if="movie.imdbRating">⭐ {{ movie.imdbRating }}</span>
+                    <span v-else class="no-rating">-</span>
+                  </td>
                   <td class="td-action">
                     <button
                       v-if="!movie.isScheduled"
@@ -638,7 +650,22 @@ footer {
 .td-categories { }
 .td-year { color: #888; }
 .td-duration { color: #888; }
-.td-rating { color: #27ae60; font-weight: 500; }
+.td-rating { color: #f5c518; font-weight: 500; }
+
+.imdb-link {
+  color: #f5c518;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.imdb-link:hover {
+  color: #ffdb58;
+  text-decoration: underline;
+}
+
+.no-rating {
+  color: #555;
+}
 .td-action { text-align: center; }
 
 .categories-cell {

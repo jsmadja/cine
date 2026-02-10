@@ -1,0 +1,4 @@
+GET https://api.themoviedb.org/3/movie/11
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0Nzk4OGI1YzFlZTFmNzkxOTIzZWVlN2E2MDUzYjg4MSIsIm5iZiI6MTc3MDc1MzA4My42ODIsInN1YiI6IjY5OGI4YzNiZWI5ZjYwYTUzYzFlNjRkMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.4hzyQznHYkaoeAWkiR6ZSVhA65NwZfFB3zFoa-A2PGE
+
+###
