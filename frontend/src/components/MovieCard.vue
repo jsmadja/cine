@@ -10,6 +10,13 @@ const props = defineProps<{
 
 const freeboxStore = useFreeboxStore()
 
+// Un bon film a une note >= 7/10
+const isGoodMovie = computed(() => {
+  if (!props.movie.imdbRating) return false
+  const rating = parseFloat(props.movie.imdbRating)
+  return !isNaN(rating) && rating >= 7
+})
+
 function formatTime(date: string) {
   return dayjs(date).format('HH:mm')
 }
@@ -39,7 +46,7 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
 </script>
 
 <template>
-  <article class="movie-card" :class="{ 'is-scheduled': movie.isScheduled }">
+  <article class="movie-card" :class="{ 'is-scheduled': movie.isScheduled, 'is-good-movie': isGoodMovie }">
     <div class="poster-container">
       <img
         v-if="movie.icon"
@@ -52,6 +59,9 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
       <div v-else class="movie-poster placeholder">🎬</div>
       <div v-if="movie.isScheduled" class="scheduled-badge">
         ✅ Programmé
+      </div>
+      <div v-if="isGoodMovie" class="good-movie-badge">
+        🏆 Top
       </div>
     </div>
 
@@ -72,11 +82,14 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
           :href="`https://www.imdb.com/title/${movie.imdbID}`"
           target="_blank"
           class="imdb-rating"
+          :class="{ 'good-rating': isGoodMovie, 'bad-rating': !isGoodMovie }"
           @click.stop
         >
           ⭐ {{ movie.imdbRating }}
         </a>
-        <span v-else-if="movie.imdbRating" class="imdb-rating">⭐ {{ movie.imdbRating }}</span>
+        <span v-else-if="movie.imdbRating" class="imdb-rating" :class="{ 'good-rating': isGoodMovie, 'bad-rating': !isGoodMovie }">
+          ⭐ {{ movie.imdbRating }}
+        </span>
       </div>
 
       <div class="movie-categories">
@@ -136,10 +149,20 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
   border-color: #27ae60;
 }
 
+.movie-card.is-good-movie {
+  border-color: #f5c518;
+  box-shadow: 0 0 15px rgba(245, 197, 24, 0.3);
+}
+
 .movie-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
   border-color: #e50914;
+}
+
+.movie-card.is-good-movie:hover {
+  border-color: #f5c518;
+  box-shadow: 0 8px 25px rgba(245, 197, 24, 0.4);
 }
 
 .movie-card.is-scheduled:hover {
@@ -160,6 +183,19 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.good-movie-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: linear-gradient(135deg, #f5c518, #d4a516);
+  color: #000;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -233,14 +269,22 @@ const recordingState = computed(() => freeboxStore.getRecordingState(props.movie
 }
 
 .imdb-rating {
-  background: linear-gradient(135deg, #f5c518, #d4a516);
   padding: 0.3rem 0.75rem;
   border-radius: 6px;
   font-size: 0.85rem;
-  color: #000;
   font-weight: 600;
   text-decoration: none;
   transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.imdb-rating.good-rating {
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+  color: white;
+}
+
+.imdb-rating.bad-rating {
+  background: #555;
+  color: #aaa;
 }
 
 a.imdb-rating:hover {

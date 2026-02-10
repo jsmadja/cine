@@ -71,6 +71,12 @@ function formatDuration(start: string, end: string) {
   return hours > 0 ? `${hours}h${mins.toString().padStart(2, '0')}` : `${mins}min`
 }
 
+function isGoodMovie(movie: any): boolean {
+  if (!movie.imdbRating) return false
+  const rating = parseFloat(movie.imdbRating)
+  return !isNaN(rating) && rating >= 7
+}
+
 async function recordMovie(movie: any) {
   const start = Math.floor(new Date(movie.startDate).getTime() / 1000)
   const end = Math.floor(new Date(movie.endDate).getTime() / 1000)
@@ -194,10 +200,11 @@ async function recordMovie(movie: any) {
                 <tr
                   v-for="movie in dayMovies"
                   :key="movie.id"
-                  :class="{ 'is-scheduled': movie.isScheduled }"
+                  :class="{ 'is-scheduled': movie.isScheduled, 'is-good-movie': isGoodMovie(movie) }"
                 >
                   <td class="td-status">
                     <span v-if="movie.isScheduled" class="status-badge scheduled" title="Programmé">✅</span>
+                    <span v-else-if="isGoodMovie(movie)" class="status-badge good" title="Bon film (≥7/10)">🏆</span>
                     <span v-else class="status-badge not-scheduled" title="Non programmé">⚪</span>
                   </td>
                   <td class="td-time">{{ formatTime(movie.startDate) }}</td>
@@ -221,11 +228,14 @@ async function recordMovie(movie: any) {
                       :href="`https://www.imdb.com/title/${movie.imdbID}`"
                       target="_blank"
                       class="imdb-link"
+                      :class="{ 'good-rating': isGoodMovie(movie), 'bad-rating': !isGoodMovie(movie) }"
                       :title="`Voir sur IMDB`"
                     >
                       ⭐ {{ movie.imdbRating }}
                     </a>
-                    <span v-else-if="movie.imdbRating">⭐ {{ movie.imdbRating }}</span>
+                    <span v-else-if="movie.imdbRating" :class="{ 'good-rating': isGoodMovie(movie), 'bad-rating': !isGoodMovie(movie) }">
+                      ⭐ {{ movie.imdbRating }}
+                    </span>
                     <span v-else class="no-rating">-</span>
                   </td>
                   <td class="td-action">
@@ -650,17 +660,41 @@ footer {
 .td-categories { }
 .td-year { color: #888; }
 .td-duration { color: #888; }
-.td-rating { color: #f5c518; font-weight: 500; }
+.td-rating { font-weight: 500; }
+
+/* Styles pour les notes */
+.good-rating {
+  color: #27ae60;
+  font-weight: 700;
+}
+
+.bad-rating {
+  color: #888;
+}
 
 .imdb-link {
-  color: #f5c518;
   text-decoration: none;
   transition: color 0.2s;
 }
 
+.imdb-link.good-rating {
+  color: #27ae60;
+}
+
+.imdb-link.bad-rating {
+  color: #888;
+}
+
 .imdb-link:hover {
-  color: #ffdb58;
   text-decoration: underline;
+}
+
+.imdb-link.good-rating:hover {
+  color: #2ecc71;
+}
+
+.imdb-link.bad-rating:hover {
+  color: #aaa;
 }
 
 .no-rating {
