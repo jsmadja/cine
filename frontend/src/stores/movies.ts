@@ -180,7 +180,14 @@ export const useMoviesStore = defineStore('movies', () => {
       channelSet.set(movie.channel, (channelSet.get(movie.channel) || 0) + 1)
     }
     return [...channelSet.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0])) // Trier par ordre alphabétique
+      .sort((a, b) => {
+        // D'abord trier par visibilité (cochés en haut)
+        const aVisible = !hiddenChannels.value.has(a[0])
+        const bVisible = !hiddenChannels.value.has(b[0])
+        if (aVisible !== bVisible) return aVisible ? -1 : 1
+        // Puis par ordre alphabétique
+        return a[0].localeCompare(b[0])
+      })
       .map(([name, count]) => ({ name, count }))
   })
 
@@ -193,7 +200,14 @@ export const useMoviesStore = defineStore('movies', () => {
       }
     }
     return [...categorySet.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0])) // Trier par ordre alphabétique
+      .sort((a, b) => {
+        // D'abord trier par visibilité (cochés en haut)
+        const aVisible = !hiddenCategories.value.has(a[0])
+        const bVisible = !hiddenCategories.value.has(b[0])
+        if (aVisible !== bVisible) return aVisible ? -1 : 1
+        // Puis par ordre alphabétique
+        return a[0].localeCompare(b[0])
+      })
       .map(([name, count]) => ({ name, count }))
   })
 
