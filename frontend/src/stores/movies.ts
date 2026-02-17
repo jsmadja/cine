@@ -155,11 +155,13 @@ export const useMoviesStore = defineStore('movies', () => {
     }
   }
 
-  // Films filtrés (sans les chaînes et catégories masquées), triés par date desc puis heure desc
+  // Films filtrés (sans les chaînes et catégories masquées, et sans année de sortie), triés par date desc puis heure desc
   const filteredMovies = computed(() => {
     return movies.value
       .filter(m => !hiddenChannels.value.has(m.channel))
       .filter(m => {
+        // Exclure les films sans année de sortie
+        if (!m.year) return false
         // Si le film n'a pas de catégorie, on l'affiche
         if (!m.categories || m.categories.length === 0) return true
         // Sinon, on vérifie qu'au moins une catégorie est visible
