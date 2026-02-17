@@ -162,6 +162,8 @@ export const useMoviesStore = defineStore('movies', () => {
       .filter(m => {
         // Exclure les films sans année de sortie
         if (!m.year) return false
+        // Exclure les films sans note IMDB
+        if (!m.imdbRating) return false
         // Si le film n'a pas de catégorie, on l'affiche
         if (!m.categories || m.categories.length === 0) return true
         // Sinon, on vérifie qu'au moins une catégorie est visible
