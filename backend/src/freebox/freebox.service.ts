@@ -236,8 +236,9 @@ export class FreeboxService {
         start: request.start,
         end: request.end,
         name: request.name,
-        margin_before: 5 * 60,  // 5 minutes en secondes
-        margin_after: 15 * 60,  // 15 minutes en secondes
+        margin_before: 5 * 60,
+        margin_after: 25 * 60,
+        channel_quality: 'hd'
       };
 
       const recordResponse = await this.freeboxApi('/pvr/programmed/', 'POST', recordRequest, sessionToken);
