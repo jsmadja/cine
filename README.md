@@ -133,6 +133,11 @@ Cliquez sur "⏺️ Enregistrer sur Freebox" sur n'importe quel film.
 # Se connecter à Docker Hub
 docker login
 
+# Crée un nouveau builder compatible multi-arch
+docker buildx create --name multiarch --driver docker-container --use
+
+docker buildx use multiarch
+
 # Construire et pousser les images multi-architecture (AMD64 + ARM64)
 docker buildx build --platform linux/amd64,linux/arm64 -t jsmadja/cine-backend:latest --push ./backend
 docker buildx build --platform linux/amd64,linux/arm64 -t jsmadja/cine-frontend:latest --push ./frontend
