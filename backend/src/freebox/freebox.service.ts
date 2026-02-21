@@ -238,7 +238,7 @@ export class FreeboxService {
         name: request.name,
         margin_before: 5 * 60,
         margin_after: 25 * 60,
-        channel_quality: 'hd'
+        channel_quality: '4k'
       };
 
       const recordResponse = await this.freeboxApi('/pvr/programmed/', 'POST', recordRequest, sessionToken);
